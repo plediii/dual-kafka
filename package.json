@@ -1,0 +1,25 @@
+{
+  "name": "dual-kafka",
+  "version": "0.0.0",
+  "description": "Produce and consume kafka events via dualapi",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/plediii/dual-kafka.git"
+  },
+  "author": "Paul J. Ledbetter III",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/plediii/dual-kafka/issues"
+  },
+  "homepage": "https://github.com/plediii/dual-kafka#readme",
+  "dependencies": {
+    "kafka-node": "^0.2.27"
+  },
+  "devDependencies": {
+    "lodash": "^3.10.0"
+  }
+}
