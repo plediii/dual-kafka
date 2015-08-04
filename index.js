@@ -10,7 +10,8 @@ module.exports = function (Domain, libs) {
         var client = new kafkaNode.Client(params.connectionString, params.clientId, params.zkOptions);
         
         return {
-            highLevelConsumer: function (payloads, options) {
+            client: client
+            , highLevelConsumer: function (payloads, options) {
                 var consumer = new kafkaNode.HighLevelConsumer(client, payloads, options);
                 var consumerRoute = kafkaRoute.concat(['consumer'])
                 consumer.on('message', function (body) {
