@@ -30,8 +30,9 @@ module.exports = function (hooks) {
             this.callbacks[name].push(onMessage);
         }
         , _recv: function (message) {
-            Process.nextTick(function () {
-                _.each(this.callbacks['message'], function (send) {
+            var _this = this;
+            process.nextTick(function () {
+                _.each(_this.callbacks['message'], function (send) {
                     send(message);
                 });
             });
@@ -44,10 +45,15 @@ module.exports = function (hooks) {
         hook('highLevelProducerConstructor', arguments, this);
     };
 
-    _.extend(HighLevelProduer.prototype, {
+    _.extend(HighLevelProducer.prototype, {
         send: function (payloads, cb) {
             hook('highLevelProducerSend', [payloads], this);
-            return cb();
+            var result = hook('highLevelProducerReply', payloads);
+            if (result) {
+                return cb.apply(null, result);
+            } else {
+                return cb();
+            }
         }
     });
 

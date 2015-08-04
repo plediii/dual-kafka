@@ -1,10 +1,9 @@
 /*jslint node: true */
 "use strict";
 
-var Promise = require('bluebird');
 var _ = require('lodash');
 var assert = require('assert');
-var dualproto = require('dual-protocol');
+var dualapi = require('dualapi');
 
 var kafkaNode = require('./mock-kafka');
 
@@ -14,7 +13,7 @@ describe('dual-kafka', function () {
     var kafkaHooks;
     beforeEach(function () {
         kafkaHooks = {};
-        d = dualproto
+        d = dualapi
             .use(function (Domain, libs) {
                 libs['kafka-node'] = kafkaNode(kafkaHooks)
             })
@@ -43,24 +42,6 @@ describe('dual-kafka', function () {
         });
     });
 
-    describe('client', function () {
-        var kafkaClient;
-        beforeEach(function () {
-            kafkaClient = d.kafkaClient();
-        });
-
-        it('should be available on the client object', function () {
-            assert(_.isFunction(kafkaClient.consumer));
-        });
-
-        it('should construct a consumer from the client', function (done) {
-            kafkaHooks.highLevelConsumerConstructor = function (client) {
-                done();
-            }
-            kafkaClient.producer();
-        });
-    });
-
     describe('consumer', function () {
         var kafkaClient;
         beforeEach(function () {
@@ -69,7 +50,7 @@ describe('dual-kafka', function () {
         
         describe('constructor', function () { 
             it('should be available on the client object', function () {
-                assert(_.isFunction(kafkaClient.consumer));
+                assert(_.isFunction(kafkaClient.highLevelConsumer));
             });
 
             it('should construct a consumer with provided topics', function (done) {
@@ -77,7 +58,7 @@ describe('dual-kafka', function () {
                     assert.equal(payloads[0].topic, 'target')
                     done();
                 }
-                kafkaClient.consumer([{ topic: 'target '}]);
+                kafkaClient.highLevelConsumer([{ topic: 'target'}]);
             });
 
             it('should construct a consumer with provided options', function (done) {
@@ -85,7 +66,7 @@ describe('dual-kafka', function () {
                     assert.equal(options.right, 'on')
                     done();
                 }
-                kafkaClient.consumer([], { right: 'on' });
+                kafkaClient.highLevelConsumer([], { right: 'on' });
             });
         });
 
@@ -95,7 +76,7 @@ describe('dual-kafka', function () {
                 kafkaHooks.highLevelConsumerConstructor = function () {
                     mockConsumer = this;
                 };
-                kafkaClient.consumer();
+                kafkaClient.highLevelConsumer();
             });
 
             var mockSend = function () {
@@ -170,19 +151,19 @@ describe('dual-kafka', function () {
         });
         
         it('should be available on the client object', function () {
-            assert(_.isFunction(kafkaClient.producer));
+            assert(_.isFunction(kafkaClient.highLevelProducer));
         });
 
         it('should construct a producer from the client', function (done) {
             kafkaHooks.highLevelProducerConstructor = function (client) {
                 done();
             }
-            kafkaClient.producer();
+            kafkaClient.highLevelProducer();
         });
 
         describe('send', function () {
             beforeEach(function () {
-                kafkaClient.producer();
+                kafkaClient.highLevelProducer();
             });
 
             it('should be mounted at route producer', function () {
@@ -197,13 +178,35 @@ describe('dual-kafka', function () {
                 d.send(['kafka', 'producer', 'child'], [], { ancient: 'legend' });
             });
 
-            it('should initiate a producer send on a with a stringified copy of the body', function (done) {
+            it('should initiate a producer send with a stringified copy of the body', function (done) {
                 kafkaHooks.highLevelProducerSend = function (payloads) {
                     var body = JSON.parse(payloads[0].messages[0]);
                     assert.equal(body.ancient, 'legend');
                     done();
                 };
                 d.send(['kafka', 'producer', 'child'], [], { ancient: 'legend' });
+            });
+
+            it('should reply with 201 status code on successful send', function (done) {
+                kafkaHooks.highLevelProducerReply = function (payloads) {
+                    return [null, 'ok'];
+                };
+                d.request(['kafka', 'producer', 'child'], 'body')
+                .spread(function (body, options) {
+                    assert.equal(201, options.statusCode);
+                    done();
+                });
+            });
+
+            it('should reply with 500 status code on successful send', function (done) {
+                kafkaHooks.highLevelProducerReply = function (payloads) {
+                    return ['fail'];
+                };
+                d.request(['kafka', 'producer', 'child'], 'body')
+                .spread(function (body, options) {
+                    assert.equal(500, options.statusCode);
+                    done();
+                });
             });
         });
     });
