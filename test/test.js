@@ -40,6 +40,11 @@ describe('dual-kafka', function () {
                 }
             });
         });
+
+        it('should expose the kafka-node client', function () {
+            var k = d.kafkaClient();
+            assert(k.client);
+        });
     });
 
     describe('consumer', function () {
